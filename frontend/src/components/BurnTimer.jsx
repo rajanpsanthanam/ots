@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Progress } from "@/components/ui/progress"
 
 export default function BurnTimer({ onBurnStart }) {
@@ -6,33 +6,35 @@ export default function BurnTimer({ onBurnStart }) {
   const startTimeRef = useRef(null)
   const frameRef = useRef(null)
   const hasStartedBurn = useRef(false)
+  const onBurnStartRef = useRef(onBurnStart)
   const BURN_TIME = 5000 // 5 seconds in milliseconds
 
+  // Update the callback ref when onBurnStart changes
   useEffect(() => {
-    // Reset refs and state
-    startTimeRef.current = null
-    hasStartedBurn.current = false
-    setProgress(100)
+    onBurnStartRef.current = onBurnStart
+  }, [onBurnStart])
 
-    const animate = (currentTime) => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = currentTime
-      }
-
-      const elapsed = currentTime - startTimeRef.current
-      const remaining = Math.max(0, BURN_TIME - elapsed)
-      const progressValue = (remaining / BURN_TIME) * 100
-      
-      setProgress(progressValue)
-
-      if (remaining > 0) {
-        frameRef.current = requestAnimationFrame(animate)
-      } else if (!hasStartedBurn.current) {
-        hasStartedBurn.current = true
-        onBurnStart?.()
-      }
+  const animate = useCallback((currentTime) => {
+    if (!startTimeRef.current) {
+      startTimeRef.current = currentTime
     }
 
+    const elapsed = currentTime - startTimeRef.current
+    const remaining = Math.max(0, BURN_TIME - elapsed)
+    const progressValue = (remaining / BURN_TIME) * 100
+    
+    setProgress(progressValue)
+
+    if (remaining > 0) {
+      frameRef.current = requestAnimationFrame(animate)
+    } else if (!hasStartedBurn.current) {
+      hasStartedBurn.current = true
+      onBurnStartRef.current?.()
+    }
+  }, [])
+
+  // Mount-only effect
+  useEffect(() => {
     // Start the animation
     frameRef.current = requestAnimationFrame(animate)
 
@@ -41,12 +43,10 @@ export default function BurnTimer({ onBurnStart }) {
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current)
       }
-      // Reset state on unmount
-      setProgress(100)
       startTimeRef.current = null
       hasStartedBurn.current = false
     }
-  }, [onBurnStart]) // Only re-run if onBurnStart changes
+  }, []) // Empty dependency array - only runs on mount/unmount
 
   return (
     <div className="absolute top-0 left-0 right-0">

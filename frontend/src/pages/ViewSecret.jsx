@@ -21,6 +21,7 @@ export default function ViewSecret() {
   const [isPassphraseRequired, setIsPassphraseRequired] = useState(false)
   const [shouldShowTimer, setShouldShowTimer] = useState(false)
   const navigationTimeoutRef = useRef(null)
+  const secretMessageRef = useRef(null)
 
   useEffect(() => {
     // Cleanup function for navigation timeout
@@ -45,10 +46,12 @@ export default function ViewSecret() {
       const data = await response.json()
 
       if (response.ok) {
-        setSecret({
+        const secretData = {
           ...data,
           message: data.message || data.copy
-        })
+        }
+        setSecret(secretData)
+        secretMessageRef.current = secretData.message
         // Delay showing the timer slightly to ensure proper mounting
         setTimeout(() => setShouldShowTimer(true), 100)
       } else if (data.error === 'Passphrase required') {
@@ -84,10 +87,12 @@ export default function ViewSecret() {
         throw new Error(data.detail || data.error || 'Failed to view secret')
       }
 
-      setSecret({
+      const secretData = {
         ...data,
         message: data.message || data.copy
-      })
+      }
+      setSecret(secretData)
+      secretMessageRef.current = secretData.message
       // Delay showing the timer slightly to ensure proper mounting
       setTimeout(() => setShouldShowTimer(true), 100)
 
@@ -99,7 +104,6 @@ export default function ViewSecret() {
       toast({
         title: 'Error',
         description: error.message,
-        variant: 'destructive',
       })
     }
     
@@ -107,10 +111,10 @@ export default function ViewSecret() {
   }
 
   const handleCopyMessage = async () => {
-    if (!secret?.message) return
+    if (!secretMessageRef.current) return
     
     try {
-      await navigator.clipboard.writeText(secret.message)
+      await navigator.clipboard.writeText(secretMessageRef.current)
       toast({
         title: 'Copied',
         description: 'Secret message copied to clipboard',
@@ -119,7 +123,6 @@ export default function ViewSecret() {
       toast({
         title: 'Error',
         description: 'Failed to copy message',
-        variant: 'destructive',
       })
     }
   }

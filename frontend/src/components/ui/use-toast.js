@@ -117,6 +117,7 @@ function toast({ ...props }) {
       ...props,
       id,
       open: true,
+      duration: 2000, // 2 seconds
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
@@ -130,7 +131,7 @@ function toast({ ...props }) {
   }
 }
 
-function useToast() {
+export function useToast() {
   const [state, setState] = React.useState(memoryState)
 
   React.useEffect(() => {
@@ -148,6 +149,4 @@ function useToast() {
     toast,
     dismiss: (toastId) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
-}
-
-export { useToast, toast } 
+} 

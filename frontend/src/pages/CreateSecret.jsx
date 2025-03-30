@@ -46,7 +46,6 @@ export default function CreateSecret() {
       toast({
         title: 'Authentication Required',
         description: 'Please login to create a secret',
-        variant: 'destructive',
       })
       navigate('/login')
     }
@@ -56,8 +55,7 @@ export default function CreateSecret() {
     localStorage.removeItem('token')
     toast({
       title: 'Session Expired',
-      description: 'Please login again',
-      variant: 'destructive',
+      description: 'Please login again'
     })
     navigate('/login')
   }
@@ -118,7 +116,6 @@ export default function CreateSecret() {
       toast({
         title: 'Error',
         description: error.message,
-        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
@@ -162,7 +159,6 @@ export default function CreateSecret() {
       toast({
         title: 'Error',
         description: error.message,
-        variant: 'destructive',
       })
     }
   }

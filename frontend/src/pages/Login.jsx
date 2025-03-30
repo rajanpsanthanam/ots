@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useToast } from '../components/ui/use-toast'
+import { OTPInput } from '../components/ui/otp-input'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -46,7 +47,6 @@ export default function Login() {
       toast({
         title: 'Error',
         description: error.message,
-        variant: 'destructive',
       })
     } finally {
       setIsRequestingOTP(false)
@@ -88,7 +88,6 @@ export default function Login() {
       toast({
         title: 'Error',
         description: error.message,
-        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -122,13 +121,12 @@ export default function Login() {
               {showOTPInput && (
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="otp">One-Time Password</Label>
-                  <Input
+                  <OTPInput
                     id="otp"
-                    type="text"
-                    placeholder="Enter the OTP"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
+                    onChange={setOtp}
+                    length={6}
+                    disabled={loading}
                   />
                 </div>
               )}

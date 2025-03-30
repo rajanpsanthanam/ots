@@ -70,8 +70,7 @@ export default function SessionTimer() {
     // Show toast notification
     toast({
       title: "Session Expired",
-      description: "Your session has expired. Please log in again.",
-      variant: "destructive",
+      description: "Your session has expired. Please log in again."
     })
     
     // Redirect to login page

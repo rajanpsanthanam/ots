@@ -18,8 +18,7 @@ export function useAutoLogout() {
 
       toast({
         title: 'Session Expired',
-        description: 'You have been logged out due to inactivity',
-        variant: 'destructive',
+        description: 'You have been logged out due to inactivity'
       })
 
       navigate('/login')
