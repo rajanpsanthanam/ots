@@ -155,11 +155,11 @@ class UserViewSet(viewsets.ModelViewSet):
             # Update last login time
             user.update_last_login()
             
-            # Create token with 10-minute expiration
+            # Create token with 1-minute expiration
             token = CustomToken.objects.create(
                 user=user,
                 key=''.join(random.choices(string.ascii_letters + string.digits, k=40)),
-                expires_at=current_time + timezone.timedelta(minutes=10)
+                expires_at=current_time + timezone.timedelta(minutes=1)
             )
             
             return Response({

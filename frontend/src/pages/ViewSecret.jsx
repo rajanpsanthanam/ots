@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label'
 import { useToast } from '../components/ui/use-toast'
 import { FireAnimation } from '../components/FireAnimation'
 import { ExplodeAnimation } from '../components/ExplodeAnimation'
+import BurnTimer from '@/components/BurnTimer'
 
 export default function ViewSecret() {
   const { id } = useParams()
@@ -17,54 +18,52 @@ export default function ViewSecret() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showAnimation, setShowAnimation] = useState(false)
+  const [isPassphraseRequired, setIsPassphraseRequired] = useState(false)
+  const [shouldShowTimer, setShouldShowTimer] = useState(false)
+  const navigationTimeoutRef = useRef(null)
 
   useEffect(() => {
-    // Try to fetch the secret immediately to check if it's passphrase protected
-    const fetchSecret = async () => {
-      try {
-        // For non-passphrase secrets, we need to use POST to view_protected endpoint
-        const response = await fetch(`http://localhost:8000/api/secrets/${id}/view_protected/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ passphrase: '' }), // Empty passphrase for non-passphrase secrets
-        })
-
-        if (!response.ok) {
-          const error = await response.json()
-          if (error.error === 'Passphrase required') {
-            setSecret({ has_passphrase: true })
-            return
-          }
-          throw new Error(error.detail || error.error || 'Failed to fetch secret')
-        }
-        const data = await response.json()
-        setSecret(data)
-        
-        // If we got the secret successfully, start the animation sequence
-        const animationTimer = setTimeout(() => {
-          console.log('Starting animation...') // Debug log
-          setShowAnimation(true)
-        }, 5000)
-
-        // Redirect after animation
-        const redirectTimer = setTimeout(() => {
-          navigate('/')
-        }, 8000)
-
-        // Cleanup timers
-        return () => {
-          clearTimeout(animationTimer)
-          clearTimeout(redirectTimer)
-        }
-      } catch (error) {
-        setError(error.message)
+    // Cleanup function for navigation timeout
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current)
       }
     }
+  }, [])
 
-    fetchSecret()
-  }, [id, navigate])
+  // Initial check for passphrase requirement
+  const checkPassphraseRequired = async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/secrets/${id}/view_protected/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ passphrase: '' }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSecret({
+          ...data,
+          message: data.message || data.copy
+        })
+        // Delay showing the timer slightly to ensure proper mounting
+        setTimeout(() => setShouldShowTimer(true), 100)
+      } else if (data.error === 'Passphrase required') {
+        setIsPassphraseRequired(true)
+      } else {
+        throw new Error(data.detail || data.error || 'Failed to fetch secret')
+      }
+    } catch (error) {
+      setError(error.message)
+    }
+  }
+
+  useEffect(() => {
+    checkPassphraseRequired()
+  }, [id])
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
@@ -80,49 +79,31 @@ export default function ViewSecret() {
       })
 
       const data = await response.json()
-      console.log('Response data:', data) // Debug log
 
       if (!response.ok) {
         throw new Error(data.detail || data.error || 'Failed to view secret')
       }
 
-      // Update secret state with the response data
       setSecret({
         ...data,
-        message: data.message || data.copy // Use either message or copy field
+        message: data.message || data.copy
       })
-      setIsLoading(false)
+      // Delay showing the timer slightly to ensure proper mounting
+      setTimeout(() => setShouldShowTimer(true), 100)
 
       toast({
         title: 'Success',
         description: 'Secret message retrieved successfully',
       })
-
-      // Start the animation sequence
-      const animationTimer = setTimeout(() => {
-        console.log('Starting animation...') // Debug log
-        setShowAnimation(true)
-      }, 5000)
-
-      // Redirect after animation
-      const redirectTimer = setTimeout(() => {
-        navigate('/')
-      }, 8000)
-
-      // Cleanup timers
-      return () => {
-        clearTimeout(animationTimer)
-        clearTimeout(redirectTimer)
-      }
     } catch (error) {
-      console.error('Error:', error) // Debug log
       toast({
         title: 'Error',
         description: error.message,
         variant: 'destructive',
       })
-      setIsLoading(false)
     }
+    
+    setIsLoading(false)
   }
 
   const handleCopyMessage = async () => {
@@ -143,9 +124,28 @@ export default function ViewSecret() {
     }
   }
 
+  const handleBurnStart = () => {
+    // Clear any existing timeout
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current)
+    }
+    
+    setShouldShowTimer(false) // Hide timer when burn starts
+
+    // If no animation is specified, navigate immediately
+    if (!secret?.destruction_animation || secret.destruction_animation === 'none') {
+      navigate('/')
+      return
+    }
+    
+    // Otherwise, show animation and navigate after delay
+    setShowAnimation(true)
+    navigationTimeoutRef.current = setTimeout(() => {
+      navigate('/')
+    }, 3000)
+  }
+
   const renderAnimation = () => {
-    console.log('Rendering animation, showAnimation:', showAnimation) // Debug log
-    console.log('Secret destruction_animation:', secret?.destruction_animation) // Debug log
     if (!showAnimation) return null
 
     // Don't show any animation if none specified
@@ -179,11 +179,12 @@ export default function ViewSecret() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-[350px]">
+      <Card className="w-[350px] overflow-hidden relative">
+        {shouldShowTimer && <BurnTimer onBurnStart={handleBurnStart} />}
         <CardHeader>
           <CardTitle>View Secret</CardTitle>
           <CardDescription>
-            {secret?.has_passphrase 
+            {isPassphraseRequired 
               ? 'Enter the passphrase to view the secret message'
               : 'View the secret message'}
           </CardDescription>
@@ -201,7 +202,7 @@ export default function ViewSecret() {
                 Copy Message
               </Button>
             </div>
-          ) : secret?.has_passphrase ? (
+          ) : isPassphraseRequired ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="passphrase">Passphrase</Label>

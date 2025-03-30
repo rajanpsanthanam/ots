@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select'
+import SessionTimer from '@/components/SessionTimer'
 
 const EXPIRY_OPTIONS = [
   { label: '10 minutes', value: 10 },
@@ -168,7 +169,8 @@ export default function CreateSecret() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl overflow-hidden">
+        <SessionTimer />
         <CardHeader>
           <CardTitle>Create Secret Message</CardTitle>
           <CardDescription>
