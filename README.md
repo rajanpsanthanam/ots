@@ -157,4 +157,4 @@ The application implements rate limiting on all open endpoints to prevent abuse:
 | VITE_TOAST_DURATION | Toast notification duration | 2000 |
 | VITE_ANIMATION_DURATION | Destruction animation duration | 3000 |
 
-For complete API documentation, see [API Documentation](backend/API.md).
+For complete API documentation, see [API Documentation](backend/api_doc.md).
