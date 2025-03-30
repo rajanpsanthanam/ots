@@ -28,6 +28,7 @@ from .serializers import (
     SecretCreateSerializer,
     SecretViewSerializer,
 )
+from .throttling import LoginRateThrottle, OTPVerifyRateThrottle, SecretViewRateThrottle
 
 User = get_user_model()
 
@@ -42,18 +43,10 @@ def ratelimited_view(request):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    throttle_classes = [AnonRateThrottle, UserRateThrottle]
     permission_classes = [AllowAny]  # Allow unauthenticated access to login/register
 
     @action(detail=False, methods=['post'])
-    def register(self, request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'])
+    @throttle_classes([LoginRateThrottle])
     def login(self, request):
         email = request.data.get('email')
         
@@ -114,6 +107,7 @@ class UserViewSet(viewsets.ModelViewSet):
         })
 
     @action(detail=False, methods=['post'])
+    @throttle_classes([OTPVerifyRateThrottle])
     def verify_otp(self, request):
         email = request.data.get('email')
         otp = request.data.get('otp')
@@ -196,6 +190,11 @@ class SecretViewSet(viewsets.ModelViewSet):
         if self.action in ['retrieve', 'view_protected']:
             return []  # No authentication required for viewing secrets
         return super().get_authentication_classes()
+    
+    def get_throttle_classes(self):
+        if self.action in ['retrieve', 'view_protected']:
+            return [SecretViewRateThrottle]  # Apply throttling to secret viewing
+        return super().get_throttle_classes()
     
     def get_queryset(self):
         if self.action in ['retrieve', 'view_protected']:
