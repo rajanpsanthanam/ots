@@ -12,21 +12,39 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import environ
+import os
+
+# Initialize environ
+env = environ.Env(
+    # Set default values
+    DJANGO_DEBUG=(bool, False),
+    DJANGO_SECRET_KEY=(str, 'default-unsafe-key'),
+    DJANGO_ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
+    DATABASE_URL=(str, 'sqlite:///db.sqlite3'),
+    EMAIL_HOST=(str, 'localhost'),
+    EMAIL_PORT=(int, 1025),
+    EMAIL_USE_TLS=(bool, False),
+    EMAIL_HOST_USER=(str, ''),
+    EMAIL_HOST_PASSWORD=(str, ''),
+    CORS_ALLOWED_ORIGINS=(list, ['http://localhost:5173']),
+    OTS_DEFAULT_EXPIRY_MINUTES=(int, 10),
+    OTS_MAX_EXPIRY_MINUTES=(int, 10080),
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+# Take environment variables from .env file
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-v17rq0gzm=0%2eras@-4siw#!bnc163j66^!1sy+5)reum622q'
+SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DJANGO_DEBUG')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS')
 
 
 # Application definition
@@ -82,10 +100,7 @@ WSGI_APPLICATION = 'ots.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': env.db(),
 }
 
 
@@ -134,8 +149,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'app.User'
 
 # Additional settings for one-time secrets
-OTS_DEFAULT_EXPIRY = timedelta(minutes=10)  # Default expiry time for secrets
-OTS_MAX_EXPIRY = timedelta(days=7)  # Maximum allowed expiry time
+OTS_DEFAULT_EXPIRY = timedelta(minutes=env('OTS_DEFAULT_EXPIRY_MINUTES'))
+OTS_MAX_EXPIRY = timedelta(minutes=env('OTS_MAX_EXPIRY_MINUTES'))
 
 # REST Framework settings
 REST_FRAMEWORK = {
@@ -150,17 +165,14 @@ REST_FRAMEWORK = {
 }
 
 # Email settings
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Use console backend for development
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 1025
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
-DEFAULT_FROM_EMAIL = 'noreply@example.com'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' if not DEBUG else 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = env('EMAIL_HOST')
+EMAIL_PORT = env('EMAIL_PORT')
+EMAIL_USE_TLS = env('EMAIL_USE_TLS')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite development server
-]
-
+CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
